@@ -7,7 +7,7 @@ function List() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const {data : response } = await axios.get('//localhost:8080/songs')
+        const {data : response } = await axios.get('//localhost:8081/songs')
         setData(response);
       } catch (error) {
         console.error(error.message)

@@ -2,12 +2,14 @@ package main
 
 import (
 	"database/sql"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
+
 	//	"timeconversion"
 	"fmt"
 	"radio/blah"
@@ -30,7 +32,9 @@ func main() {
 	fmt.Println(blah.Okay) //you had this package in the blah.go file called "bleh" first and it needed to be bleh.Okay
 
 	var err error
-	db, err = sql.Open("postgres", "postgres://postgres:postgres@localhost/radio?sslmode=disable")
+	// db, err = sql.Open("postgres", "postgres://postgres:postgres@localhost/radio?sslmode=disable")
+	db, err = sql.Open("postgres", "host=localhost port=5431 user=postgres dbname=radio sslmode=disable")
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,7 +51,7 @@ func main() {
 	router.GET("/songs", getSongs)
 	//router.POST("/songs", createTrack)
 
-	router.Run("localhost:8080")
+	router.Run("localhost:8081")
 }
 
 func getSongs(c *gin.Context) {

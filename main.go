@@ -23,7 +23,7 @@ type Song struct {
 	Album         string        `json:"album"`
 	Genre         string        `json:"genre"`
 	Duration      time.Duration `json:"duration"`
-	AudioPathFile string        `json:"audio_path_file"`
+	AudioPathFile string        `json:"audio_file_path"`
 }
 
 var db *sql.DB
@@ -51,6 +51,9 @@ func main() {
 	router.GET("/songs", getSongs)
 	//router.POST("/songs", createTrack)
 
+	// Getting the songid to stream
+	router.GET("/stream/id/:id", streamSongByID)
+
 	router.Run("localhost:8081")
 }
 
@@ -58,7 +61,7 @@ func getSongs(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 
 	//Query database
-	rows, err := db.Query("SELECT song_id, title, artist, album, year FROM songs")
+	rows, err := db.Query("SELECT song_id, title, artist, album, year , audio_file_path FROM songs")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -69,7 +72,7 @@ func getSongs(c *gin.Context) {
 		var s Song
 		//var durationString string
 
-		err := rows.Scan(&s.SongId, &s.Title, &s.Artist, &s.Album, &s.Year)
+		err := rows.Scan(&s.SongId, &s.Title, &s.Artist, &s.Album, &s.Year, &s.AudioPathFile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -88,71 +91,15 @@ func getSongs(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, songs)
 }
 
-// import (
-// 	//"encoding/json"
-// 	"fmt"
-// 	"github.com/gorilla/mux"
-// 	"github.com/jinzhu/gorm"
-// 	//"github.com/jinzhu/gorm/dialects/postgres"
-// 	_ "github.com/lib/pq"
-// 	"log"
-// 	"net/http"
-// 	"time"
-// )
+func streamSongByID(c *gin.Context) {
+	id := c.Param("id")
+	var audioPath string
 
-// func GetAllSongs(w http.ResponseWriter, r *http.Request) {
-// 	w.Header().Add("Content-Type", "application/json")
-// 	w.WriteHeader(http.StatusOK)
-// 	db, err := gorm.Open("postgres", "host=localhost port=8080 user=your-username dbname=radio sslmode=disable")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	defer db.Close()
+	err := db.QueryRow("SELECT audio_file_path FROM songs WHERE song_id = $1", id).Scan(&audioPath)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Song not found"})
+		return
+	}
 
-// 	var songs []Song
-// 	db.Find(&songs) //finding all, everything in db, hence plural
-
-// 	for _, song := range songs {
-// 		fmt.Printf("SongId: %d, Title: %s, Artist: %.2f\n", song.SongId, song.Title, song.Artist)
-// 	}
-// }
-
-// func main() {
-// 	router := mux.NewRouter()
-// 	router.HandleFunc("/songs", GetAllSongs)
-
-// 	// router.HandleFunc("/songs", func(w http.ResponseWriter, r *http.Request) {
-// 	// 	json.NewEncoder(w).Encode("Hello songs")
-// 	// })
-
-// 	log.Println("Radio is starting!")
-// 	http.ListenAndServe(":8080", router)
-// }
-
-// type Song struct {
-// 	SongId        int           `json:"song_id"`
-// 	Title         string        `json:"title"`
-// 	Artist        string        `json:"artist"`
-// 	Year          int           `json:"year"`
-// 	Album         string        `json:"album"`
-// 	Genre         string        `json:"genre"`
-// 	Duration      time.Duration `json:"duration"`
-// 	AudioPathFile string        `json:"audio_path_file"`
-// }
-
-// func main() {
-// 	http.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
-// 		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
-// 	})
-// }
-
-// func main() {
-// 	http.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
-// 		w.Write([]byte("Hello, World!"))
-// 	})
-
-// 	http.ListenAndServe(":8080", nil)
-
-// 	r := routes.SetupRoutes()
-// 	r.Run(":8080")
-// }
+	c.File(audioPath) // This streams the file to the browser
+}
